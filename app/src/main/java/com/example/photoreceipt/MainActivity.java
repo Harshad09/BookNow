@@ -54,14 +54,17 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
 
-                String productName = product.getText().toString();
-                int ProductPrice = Integer.parseInt(price.getText().toString());
-                int ProductQuantity = Integer.parseInt(quantity.getText().toString());
-                int TotalPrice = ProductPrice * ProductQuantity;
 
-                if(product.equals("") || price.equals("") || quantity.equals("")) {
+
+                if(product.equals("") || price.length() == 0 || quantity.length() ==0) {
                     Toast.makeText(MainActivity.this, "Please Enter all Fields !", Toast.LENGTH_SHORT).show();
                 }else {
+
+                    String productName = product.getText().toString();
+                    int ProductPrice = Integer.parseInt(price.getText().toString());
+                    int ProductQuantity = Integer.parseInt(quantity.getText().toString());
+                    int TotalPrice = ProductPrice * ProductQuantity;
+
                       Intent intent = new Intent(MainActivity.this,PrintReceipt.class);
                       intent.putExtra("ProductName",productName);
                       intent.putExtra("ProductPrice",ProductPrice);

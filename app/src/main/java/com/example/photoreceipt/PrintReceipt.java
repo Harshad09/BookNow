@@ -27,7 +27,10 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-
+import com.gkemon.XMLtoPDF.PdfGenerator;
+import com.gkemon.XMLtoPDF.PdfGeneratorListener;
+import com.gkemon.XMLtoPDF.model.FailureResponse;
+import com.gkemon.XMLtoPDF.model.SuccessResponse;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -65,7 +68,7 @@ public class PrintReceipt extends AppCompatActivity {
         row_total = findViewById(R.id.row_total);
         final_row_product = findViewById(R.id.final_row_product);
         final_row_total = findViewById(R.id.final_row_total);
-        btnConvertToImage = findViewById(R.id.convert);
+//        btnConvertToImage = findViewById(R.id.convert);
         btnConvertToPdf = findViewById(R.id.convertToPdf);
         layout_view = findViewById(R.id.print);
 
@@ -76,83 +79,137 @@ public class PrintReceipt extends AppCompatActivity {
         row_total.setText(String.valueOf(TotalPrice));
         final_row_total.setText(String.valueOf(TotalPrice));
 
-        btnConvertToImage.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-                Bitmap bitmap = getBitmapFromView(layout_view);
-
-                storeImage(bitmap);
-
-                PackageManager pm = PrintReceipt.this.getPackageManager();
-                String pack = "Receipt";
-                try {
-                    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, bytes);
-                    String path = MediaStore.Images.Media.insertImage(PrintReceipt.this.getContentResolver(), bitmap, "Title", null);
-                    Uri imageUri = Uri.parse(path);
-
-                    @SuppressWarnings("unused")
-                    PackageInfo info = pm.getPackageInfo(pack, PackageManager.GET_META_DATA);
-
-                    Intent waIntent = new Intent(Intent.ACTION_SEND);
-                    waIntent.setType("image/*");
-                    waIntent.setPackage(pack);
-                    waIntent.putExtra(android.content.Intent.EXTRA_STREAM, imageUri);
-                    waIntent.putExtra(Intent.EXTRA_TEXT, pack);
-                    PrintReceipt.this.startActivity(Intent.createChooser(waIntent, "Share with"));
-                } catch (Exception e) {
-                    Log.e("Error on sharing", e + " ");
-                    Toast.makeText(PrintReceipt.this, "Image Stored at Internal storage pictures", Toast.LENGTH_SHORT).show();
-                }
-
-            }
-        });
+//        ******************************************************************* //
 
         btnConvertToPdf.setOnClickListener(new View.OnClickListener() {
-            @RequiresApi(api = Build.VERSION_CODES.KITKAT)
             @Override
             public void onClick(View v) {
 
-                Bitmap bitmapForPdf = getBitmapFromView(layout_view);
-                PdfDocument pdfDocument = new PdfDocument();
-                PdfDocument.PageInfo pi = new PdfDocument.PageInfo.Builder(bitmapForPdf.getWidth(),bitmapForPdf.getHeight(),1).create();
 
-                PdfDocument.Page page = pdfDocument.startPage(pi);
-                Canvas canvas = page.getCanvas();
-                Paint paint = new Paint();
-                paint.setColor(Color.parseColor("#FFFFFF"));
-                canvas.drawPaint(paint);
+                PdfGenerator.getBuilder()
+                        .setContext(PrintReceipt.this)
+                        .fromViewSource()
+                        .fromView(layout_view)
+                        .setPageSize(PdfGenerator.PageSize.A4)
+                        .setFileName("BookNow_Pdf")
+                        .setFolderName(productName)
+                        .openPDFafterGeneration(true)
+                        .build(new PdfGeneratorListener() {
+                            @Override
+                            public void onFailure(FailureResponse failureResponse) {
+                                super.onFailure(failureResponse);
+                                Toast.makeText(PrintReceipt.this, "Operation Failed", Toast.LENGTH_SHORT).show();
+                            }
 
-                bitmapForPdf = Bitmap.createScaledBitmap(bitmapForPdf,bitmapForPdf.getWidth(),bitmapForPdf.getHeight(),true);
-                paint.setColor(Color.BLUE);
-                canvas.drawBitmap(bitmapForPdf,0,0,null);
-                pdfDocument.finishPage(page);
+                            @Override
+                            public void showLog(String log) {
+                                super.showLog(log);
+                            }
 
-                //save pdf
+                            @Override
+                            public void onStartPDFGeneration() {
+                                /*When PDF generation begins to start*/
+//                        Toast.makeText(PrintReceipt.this, "Generating Pdf", Toast.LENGTH_SHORT).show();
+                            }
 
-                File root = new File(Environment.getExternalStorageDirectory(),"BookNow");
-                if(!root.exists()) {
-                    root.mkdir();
-                }
-                String name = productName+".pdf";
-                File file = new File(root,name);
-                try {
-                    FileOutputStream fileOutputStream = new FileOutputStream(file);
-                    pdfDocument.writeTo(fileOutputStream);
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                    Toast.makeText(PrintReceipt.this, e.toString(), Toast.LENGTH_SHORT).show();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    Toast.makeText(PrintReceipt.this, e.toString(), Toast.LENGTH_SHORT).show();
-                }
-                pdfDocument.close();
+                            @Override
+                            public void onFinishPDFGeneration() {
+                                /*When PDF generation is finished*/
+                        Toast.makeText(PrintReceipt.this, "Pdf Generated", Toast.LENGTH_SHORT).show();
+                            }
 
-                Toast.makeText(PrintReceipt.this, "Pdf saved in InternalStorage/BookNow", Toast.LENGTH_SHORT).show();
+                            @Override
+                            public void onSuccess(SuccessResponse response) {
+                                super.onSuccess(response);
+//                                Toast.makeText(PrintReceipt.this, response.getPath(), Toast.LENGTH_SHORT).show();
+                                Log.d("path",response.getPath());
+                            }
+                        });
 
             }
         });
+
+
+
+//        ******************************************************************* //
+
+//        btnConvertToImage.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//
+//                Bitmap bitmap = getBitmapFromView(layout_view);
+//
+//                storeImage(bitmap);
+//
+//                PackageManager pm = PrintReceipt.this.getPackageManager();
+//                String pack = "Receipt";
+//                try {
+//                    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+//                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, bytes);
+//                    String path = MediaStore.Images.Media.insertImage(PrintReceipt.this.getContentResolver(), bitmap, "Title", null);
+//                    Uri imageUri = Uri.parse(path);
+//
+//                    @SuppressWarnings("unused")
+//                    PackageInfo info = pm.getPackageInfo(pack, PackageManager.GET_META_DATA);
+//
+//                    Intent waIntent = new Intent(Intent.ACTION_SEND);
+//                    waIntent.setType("image/*");
+//                    waIntent.setPackage(pack);
+//                    waIntent.putExtra(android.content.Intent.EXTRA_STREAM, imageUri);
+//                    waIntent.putExtra(Intent.EXTRA_TEXT, pack);
+//                    PrintReceipt.this.startActivity(Intent.createChooser(waIntent, "Share with"));
+//                } catch (Exception e) {
+//                    Log.e("Error on sharing", e + " ");
+//                    Toast.makeText(PrintReceipt.this, "Image Stored at Internal storage pictures", Toast.LENGTH_SHORT).show();
+//                }
+//
+//            }
+//        });
+//
+//        btnConvertToPdf.setOnClickListener(new View.OnClickListener() {
+//            @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+//            @Override
+//            public void onClick(View v) {
+//
+//                Bitmap bitmapForPdf = getBitmapFromView(layout_view);
+//                PdfDocument pdfDocument = new PdfDocument();
+//                PdfDocument.PageInfo pi = new PdfDocument.PageInfo.Builder(bitmapForPdf.getWidth(),bitmapForPdf.getHeight(),1).create();
+//
+//                PdfDocument.Page page = pdfDocument.startPage(pi);
+//                Canvas canvas = page.getCanvas();
+//                Paint paint = new Paint();
+//                paint.setColor(Color.parseColor("#FFFFFF"));
+//                canvas.drawPaint(paint);
+//
+//                bitmapForPdf = Bitmap.createScaledBitmap(bitmapForPdf,bitmapForPdf.getWidth(),bitmapForPdf.getHeight(),true);
+//                paint.setColor(Color.BLUE);
+//                canvas.drawBitmap(bitmapForPdf,0,0,null);
+//                pdfDocument.finishPage(page);
+//
+//                //save pdf
+//
+//                File root = new File(Environment.getExternalStorageDirectory(),"BookNow");
+//                if(!root.exists()) {
+//                    root.mkdir();
+//                }
+//                String name = productName+".pdf";
+//                File file = new File(root,name);
+//                try {
+//                    FileOutputStream fileOutputStream = new FileOutputStream(file);
+//                    pdfDocument.writeTo(fileOutputStream);
+//                } catch (FileNotFoundException e) {
+//                    e.printStackTrace();
+//                    Toast.makeText(PrintReceipt.this, e.toString(), Toast.LENGTH_SHORT).show();
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                    Toast.makeText(PrintReceipt.this, e.toString(), Toast.LENGTH_SHORT).show();
+//                }
+//                pdfDocument.close();
+//
+//                Toast.makeText(PrintReceipt.this, "Pdf saved in InternalStorage/BookNow", Toast.LENGTH_SHORT).show();
+//
+//            }
+//        });
 
     }
 
